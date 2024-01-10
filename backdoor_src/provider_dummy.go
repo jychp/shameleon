@@ -12,10 +12,10 @@ type GetEndpointFormat struct {
 	Packets []string `json:"elements"`
 }
 
-func (e GetEndpointFormat) ExtractPackets() ([]Packet, error) {
+func (e GetEndpointFormat) ExtractPackets(p Provider) ([]Packet, error) {
 	var packets []Packet
 	for _, rawPacket := range e.Packets {
-		packet, err := ParsePacket(rawPacket)
+		packet, err := ParsePacket(rawPacket, p.Config)
 		if err != nil {
 			return []Packet{}, err
 		}
@@ -42,7 +42,7 @@ func CustomGetPackets(p Provider) ([]Packet, error) {
 		println("ERROR: Failed to parse server response", err.Error())
 		return []Packet{}, err
 	}
-	packets, err := rawData.ExtractPackets()
+	packets, err := rawData.ExtractPackets(p)
 	if err != nil {
 		println("ERROR: Failed to extract packets", err.Error())
 		return []Packet{}, err
@@ -53,7 +53,11 @@ func CustomGetPackets(p Provider) ([]Packet, error) {
 func CustomSendPackets(p Provider, packets []Packet) error {
 	results := []string{}
 	for _, packet := range packets {
-		results = append(results, string(packet.Encode()))
+		content, err := packet.Encode(p.Config)
+		if err != nil {
+			return err
+		}
+		results = append(results, string(content))
 	}
 	payload := "{\"elements\": [\"" + strings.Join(results, ",") + "\"]}"
 	if len(packets) == 0 {

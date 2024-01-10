@@ -5,11 +5,12 @@ import (
 )
 
 var (
-	rawConfig = `{"delay":1000}`
+	rawConfig = `{"delay":1000,"secret":"fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4="}`
 )
 
 type Config struct {
-	Delay int `json:"delay"`
+	Delay 	int 	`json:"delay"`
+	Secret 	string 	`json:"secret"`
 }
 
 func loadConfig() (Config, error) {

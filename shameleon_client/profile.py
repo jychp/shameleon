@@ -12,6 +12,8 @@ class Profile:
         self._provider: ShameleonProvider | None = None
         self._provider_name = provider
         self.description = description
+        # Backdoor config
+        self.backdoor_secret: str = ''
 
     @classmethod
     def load(cls, file_path: str) -> Profile:
@@ -22,10 +24,11 @@ class Profile:
             provider=data['general']['provider'],
             description=data['general']['description'],
         )
+        profile.backdoor_secret = data['backdoor']['secret']
         return profile
 
     @property
     def provider(self) -> ShameleonProvider:
         if self._provider is None:
-            self._provider = ShameleonProvider.get_module_from_name(self._provider_name)()
+            self._provider = ShameleonProvider.get_module_from_name(self._provider_name)(self.backdoor_secret)
         return self._provider

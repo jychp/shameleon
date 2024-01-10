@@ -13,9 +13,6 @@ class DummyShameleonProvider(ShameleonProvider):
     This provider is not intended to be used in production.
     """
 
-    def __init__(self):
-        super().__init__()
-
     def _send_payload(self, payload: list[str]):
         req = requests.post('http://localhost:8000/in', json={'elements': payload})
         req.raise_for_status()

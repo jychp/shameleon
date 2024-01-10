@@ -2,8 +2,10 @@ import requests
 
 from shameleon_client.providers.base import ShameleonProvider
 
+PROVIDER_NAME = 'dummy'
 
-class DummyProvider(ShameleonProvider):
+
+class DummyShameleonProvider(ShameleonProvider):
     """ A dummy provider for testing purposes.
 
     This provider is used to test the Shameleon client without having to

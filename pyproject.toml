@@ -12,6 +12,7 @@ packages = [{include = "shameleon_client"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.31.0"
+pyyaml = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core"]

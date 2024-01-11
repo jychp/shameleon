@@ -6,7 +6,17 @@ from shameleon_client.providers.base import ShameleonProvider
 
 
 class Profile:
-    # DOC
+    """ Shameleon profile
+
+    Shameleon profile is a YAML file that contains the configuration of a Shameleon provider.
+    Shameleon profile is used to configure the Shameleon client and patch the Shameleon backdoor.
+
+    args:
+        name: profile name
+        provider: Shameleon provider name
+        description: profile description
+    """
+
     def __init__(self, name: str, provider: str, description: str = ''):
         self.name = name
         self._provider: ShameleonProvider | None = None

@@ -1,9 +1,10 @@
 package main
 
 type Tunnel struct {
-	Input	chan []byte
-	Output	chan []byte
-	Kind    string
+	Input		chan []byte
+	Output		chan []byte
+	Kind    	string
+	Lastseen 	int64
 	// TODO: Implement lastseen + garbage collection
 }
 

@@ -48,18 +48,29 @@ func main() {
 				tunnelType := newTunnelData[0]
 				tunnelID := newTunnelData[1]
 				println("MAIN: Received new tunnel request with ID:", tunnelID)
-				tunnels[tunnelID] = Tunnel{make(chan []byte), make(chan []byte), tunnelType}
+				tunnels[tunnelID] = Tunnel{make(chan []byte), make(chan []byte), tunnelType, time.Now().Unix()}
 				go tunnels[tunnelID].Handle()
 				outbound = append(outbound, BuildPacket("system", []byte("OK"), configData)...)
 			} else {
 				println("MAIN: Received data for tunnel", packet.TunnelID)
-				tunnels[packet.TunnelID].Input <- buffers[packet.TunnelID]
+				if _, ok := tunnels[packet.TunnelID]; !ok {
+					println("MAIN: Tunnel", packet.TunnelID, "does not exist")
+				} else {
+					tunnels[packet.TunnelID].Input <- buffers[packet.TunnelID]
+				}
 			}
 			buffers[packet.TunnelID] = []byte{}
 		}
 
 		// Oubout
 		for tunnelID, tunnel := range tunnels {
+			// Check activity
+			if time.Now().Unix() - tunnel.Lastseen > configData.Timeout {
+				println("MAIN: Tunnel", tunnelID, "timed out")
+				delete(tunnels, tunnelID)
+				continue
+			}
+			// Check data
 			select {
 			case data := <-tunnel.Output:
 				outbound = append(outbound, BuildPacket(tunnelID, data, configData)...)

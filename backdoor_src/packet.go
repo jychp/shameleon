@@ -62,6 +62,5 @@ func BuildPacket(tunnelID string, content []byte, config Config) []Packet {
 
 func (p Packet) Format() string {
 	packetRaw := p.TunnelID + ":" + string(p.Content)
-	println(packetRaw)
 	return packetRaw
 }

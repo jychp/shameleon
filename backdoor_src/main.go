@@ -13,6 +13,8 @@ func Fail(errorcode int) {
 
 func main() {
 	tunnels := make(map[string]Tunnel)
+	buffers := make(map[string][]byte)
+	buffers["system"] = []byte{}
 
 	// Load config
 	configData, err := loadConfig()
@@ -36,25 +38,31 @@ func main() {
 			Fail(2)
 		}
 		for _, packet := range inbound {
+			buffers[packet.TunnelID] = append(buffers[packet.TunnelID], packet.Content...)
+			packetLength := len(packet.Content)
+			if packetLength + len(packet.TunnelID) == configData.PacketSize && packet.Content[packetLength-1] == '!' {
+				continue
+			}
 			if packet.TunnelID == "system" {
-				newTunnelData := strings.SplitN(string(packet.Content), ":", 2)
+				newTunnelData := strings.SplitN(string(buffers[packet.TunnelID]), ":", 2)
 				tunnelType := newTunnelData[0]
 				tunnelID := newTunnelData[1]
 				println("MAIN: Received new tunnel request with ID:", tunnelID)
 				tunnels[tunnelID] = Tunnel{make(chan []byte), make(chan []byte), tunnelType}
 				go tunnels[tunnelID].Handle()
-				outbound = append(outbound, Packet{"system", []byte("OK")})
+				outbound = append(outbound, BuildPacket("system", []byte("OK"), configData)...)
 			} else {
 				println("MAIN: Received data for tunnel", packet.TunnelID)
-				tunnels[packet.TunnelID].Input <- packet.Content
+				tunnels[packet.TunnelID].Input <- buffers[packet.TunnelID]
 			}
+			buffers[packet.TunnelID] = []byte{}
 		}
 
 		// Oubout
 		for tunnelID, tunnel := range tunnels {
 			select {
 			case data := <-tunnel.Output:
-				outbound = append(outbound, Packet{tunnelID, data})
+				outbound = append(outbound, BuildPacket(tunnelID, data, configData)...)
 			default:
 				continue
 			}

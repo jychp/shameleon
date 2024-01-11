@@ -53,13 +53,10 @@ func CustomGetPackets(p Provider) ([]Packet, error) {
 func CustomSendPackets(p Provider, packets []Packet) error {
 	results := []string{}
 	for _, packet := range packets {
-		content, err := packet.Encode(p.Config)
-		if err != nil {
-			return err
-		}
-		results = append(results, string(content))
+		// TODO: Here we should not encode, encode should be done in main loop
+		results = append(results, packet.Format())
 	}
-	payload := "{\"elements\": [\"" + strings.Join(results, ",") + "\"]}"
+	payload := "{\"elements\": [\"" + strings.Join(results, "\",\"") + "\"]}"
 	if len(packets) == 0 {
 		return nil
 	}

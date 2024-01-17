@@ -3,13 +3,7 @@ package main
 import (
  	"time"
 	"strings"
-	"os"
 )
-
-func Fail(errorcode int) {
-	println("error", errorcode)
-	os.Exit(1)
-}
 
 func main() {
 	tunnels := make(map[string]Tunnel)
@@ -24,7 +18,7 @@ func main() {
 	}
 
 	// Create provider
-	provider := Provider{configData}
+	provider := NewProvider(configData)
 
 	// Main loop
 	for {
@@ -48,7 +42,7 @@ func main() {
 				tunnelType := newTunnelData[0]
 				tunnelID := newTunnelData[1]
 				println("MAIN: Received new tunnel request with ID:", tunnelID)
-				tunnels[tunnelID] = Tunnel{make(chan []byte), make(chan []byte), tunnelType, time.Now().Unix()}
+				tunnels[tunnelID] = NewTunnel(tunnelType)
 				go tunnels[tunnelID].Handle()
 				outbound = append(outbound, BuildPacket("system", []byte("OK"), configData)...)
 			} else {
@@ -78,10 +72,13 @@ func main() {
 				continue
 			}
 		}
-		err = provider.SendPackets(outbound)
-		if err != nil {
-			println("ERROR: Failed to send packets", err.Error())
-			Fail(3)
+		// TODO: Implement packet number limit
+		if len(outbound) > 0 {
+			err = provider.SendPackets(outbound)
+			if err != nil {
+				println("ERROR: Failed to send packets", err.Error())
+				Fail(3)
+			}
 		}
 
 

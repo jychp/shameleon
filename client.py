@@ -4,6 +4,7 @@ import os
 
 from shameleon_client.modules.shell import ShameleonShell
 from shameleon_client.profile import Profile
+from shameleon_client.providers.base import ShameleonProvider
 
 
 def main():
@@ -45,10 +46,11 @@ def main():
     print(f"[*] Using profile {chosen_profile.name}")
 
     # Start provider
-    profile.provider.start()
+    provider = ShameleonProvider.get_module_from_name(chosen_profile.provider_name)(chosen_profile)
+    provider.start()
 
     if args.module == 'shell':
-        shell = ShameleonShell(profile.provider)
+        shell = ShameleonShell(provider)
         shell.run()
     elif args.module == 'socks':
         raise NotImplementedError('SOCKS module not implemented yet ;)')

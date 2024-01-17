@@ -1,0 +1,17 @@
+general:
+  name: loki
+  description: Loki profile
+  provider: loki
+  http_timeout: 10
+backdoor:
+  secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
+  packet_size: 10000
+  packet_number: 100
+  timeout: 10
+  custom:
+    url: '<CHANGE_ME>'
+    user: '<CHANGE_ME>'
+    token: '<CHANGE_ME>'
+    label: severity
+    label_in: low
+    label_out: high

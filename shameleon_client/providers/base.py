@@ -9,6 +9,8 @@ from uuid import uuid4
 
 from cryptography.fernet import Fernet
 
+from shameleon_client.profile import Profile
+
 
 class ShameleonProvider(threading.Thread):
     """ Class representing a Shameleon provider.
@@ -21,19 +23,16 @@ class ShameleonProvider(threading.Thread):
     """
     _PROVIDERS: dict[str, type[ShameleonProvider]] = {}
 
-    def __init__(self, secret: str):
+    def __init__(self, profile: Profile):
         super().__init__()
-        self._crypto = Fernet(secret)
-        self._packet_size: int = 0
+        self._profile = profile
+        self._crypto = Fernet(self._profile.backdoor_secret)
         self._tunnels: dict[str, dict[str, Queue]] = {
             'system': {'in': Queue(), 'out': Queue()},
         }
         self._buffers: dict[str, str] = {
             'system': '',
         }
-
-    def configure(self, packet_size: int):
-        self._packet_size = packet_size
 
     def run(self):
         while True:
@@ -121,7 +120,7 @@ class ShameleonProvider(threading.Thread):
         while not self._tunnels[tunnel_id]['in'].empty():
             encrypted = self._tunnels[tunnel_id]['in'].get(block=False)
             # Partial data
-            if encrypted[-1] == '!' and len(encrypted) == self._packet_size - len(tunnel_id) + 1:
+            if encrypted[-1] == '!' and len(encrypted) == self._profile.packet_size - len(tunnel_id) + 1:
                 self._buffers[tunnel_id] += encrypted[:-1]
                 continue
             encrypted = self._buffers[tunnel_id] + encrypted
@@ -144,14 +143,14 @@ class ShameleonProvider(threading.Thread):
         self._tunnels[tunnel_id]['in'].put(encrypted)
 
     def _split_data(self, data: bytes, tunel_id: str) -> list[bytes]:
-        if self._packet_size == 0:
+        if self._profile.packet_size == 0:
             return [data]
         header_len = len(tunel_id) + 1
-        if header_len + len(data) <= self._packet_size:
+        if header_len + len(data) <= self._profile.packet_size:
             return [data]
         results: list[bytes] = []
-        for i in range(0, len(data), self._packet_size - 1):
-            results.append(data[i:i + self._packet_size - 1] + b'!')
+        for i in range(0, len(data), self._profile.packet_size - 1):
+            results.append(data[i:i + self._profile.packet_size - 1] + b'!')
         return results
 
     # Must be implemented

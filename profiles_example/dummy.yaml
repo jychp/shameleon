@@ -2,6 +2,11 @@ general:
   name: dummy
   description: Dummy profile
   provider: dummy
+  http_timeout: 10
 backdoor:
   secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
   packet_size: 1024
+  packet_number: 0
+  timeout: 10
+  custom:
+    url: 'http://127.0.0.1:8000'

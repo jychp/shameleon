@@ -1,11 +1,18 @@
 package main
 
+import (
+	"time"
+)
+
 type Tunnel struct {
 	Input		chan []byte
 	Output		chan []byte
 	Kind    	string
 	Lastseen 	int64
-	// TODO: Implement lastseen + garbage collection
+}
+
+func NewTunnel(kind string) Tunnel {
+	return Tunnel{make(chan []byte), make(chan []byte), kind, time.Now().Unix()}
 }
 
 func (t Tunnel) Handle() {

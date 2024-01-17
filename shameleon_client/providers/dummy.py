@@ -14,12 +14,19 @@ class DummyShameleonProvider(ShameleonProvider):
     """
 
     def _send_payload(self, payload: list[str]):
-        req = requests.post('http://localhost:8000/in', json={'elements': payload})
+        req = requests.post(
+            f"{self._profile.backdoor_custom['url']}/in",
+            json={'elements': payload},
+            timeout=self._profile.http_timeout,
+        )
         req.raise_for_status()
 
     def _get_payload(self) -> list[tuple[str, str]]:
         output: list[tuple[str, str]] = []
-        req = requests.get('http://localhost:8000/out')
+        req = requests.get(
+            f"{self._profile.backdoor_custom['url']}/out",
+            timeout=self._profile.http_timeout,
+        )
         req.raise_for_status()
         results = req.json()['elements']
         if len(results) > 0:

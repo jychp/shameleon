@@ -9,7 +9,7 @@ from shameleon_client.providers.base import ShameleonProvider
 
 def main():
     # ARGS PARSING
-    parser = argparse.ArgumentParser("Shameleon client - v0.1")
+    parser = argparse.ArgumentParser("Shameleon client - v0.2")
     parser.add_argument(
         '-p',
         '--profile-dir',

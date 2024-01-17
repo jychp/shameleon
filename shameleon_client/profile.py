@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import yaml
@@ -44,3 +45,15 @@ class Profile:
         profile.packet_number = data['backdoor']['packet_number']
         profile.backdoor_custom = data['backdoor'].get('custom', {})
         return profile
+
+    def serialize_for_backdoor(self) -> str:
+        """ Serialize profile for backdoor """
+        payload = {
+            "delay": 1000,  #  TODO: Implement custom delay
+            "secret": self.backdoor_secret,
+            "packet_size": self.packet_size,
+            "packet_number": self.packet_number,
+            "timeout": self.http_timeout,
+            "custom": self.backdoor_custom,
+        }
+        return json.dumps(payload)

@@ -13,3 +13,5 @@ __pycache__/
 .env
 profiles/
 test.py
+backdoor
+backdoor.exe

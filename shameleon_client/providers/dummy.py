@@ -2,10 +2,8 @@ import requests
 
 from shameleon_client.providers.base import ShameleonProvider
 
-PROVIDER_NAME = 'dummy'
 
-
-class DummyShameleonProvider(ShameleonProvider):
+class DummyProvider(ShameleonProvider):
     """ A dummy provider for testing purposes.
 
     This provider is used to test the Shameleon client without having to
@@ -13,20 +11,16 @@ class DummyShameleonProvider(ShameleonProvider):
     This provider is not intended to be used in production.
     """
 
+    def __init__(self):
+        super().__init__()
+
     def _send_payload(self, payload: list[str]):
-        req = requests.post(
-            f"{self._profile.backdoor_custom['url']}/in",
-            json={'elements': payload},
-            timeout=self._profile.http_timeout,
-        )
+        req = requests.post('http://localhost:8000/in', json={'elements': payload})
         req.raise_for_status()
 
     def _get_payload(self) -> list[tuple[str, str]]:
         output: list[tuple[str, str]] = []
-        req = requests.get(
-            f"{self._profile.backdoor_custom['url']}/out",
-            timeout=self._profile.http_timeout,
-        )
+        req = requests.get('http://localhost:8000/out')
         req.raise_for_status()
         results = req.json()['elements']
         if len(results) > 0:

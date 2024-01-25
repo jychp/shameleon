@@ -11,7 +11,3 @@ __pycache__/
 
 # Specifics
 .env
-profiles/
-test.py
-backdoor
-backdoor.exe

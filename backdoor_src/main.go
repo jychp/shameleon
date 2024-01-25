@@ -50,7 +50,11 @@ func main() {
 				if _, ok := tunnels[packet.TunnelID]; !ok {
 					println("MAIN: Tunnel", packet.TunnelID, "does not exist")
 				} else {
-					tunnels[packet.TunnelID].Input <- buffers[packet.TunnelID]
+					if tunnel, ok := tunnels[packet.TunnelID]; ok {
+						tunnel.Lastseen = time.Now().Unix()
+						tunnel.Input <- buffers[packet.TunnelID]
+						tunnels[packet.TunnelID] = tunnel
+					}
 				}
 			}
 			buffers[packet.TunnelID] = []byte{}

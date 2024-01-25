@@ -7,7 +7,7 @@ backdoor:
   secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
   packet_size: 10000
   packet_number: 100
-  timeout: 10
+  timeout: 600
   custom:
     url: '<CHANGE_ME>'
     user: '<CHANGE_ME>'

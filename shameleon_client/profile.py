@@ -29,6 +29,7 @@ class Profile:
         self.backdoor_custom: dict[str, Any] = {}
         self.packet_size: int = 0
         self.packet_number: int = 0
+        self.backdoor_timeout: int = 0
 
     @classmethod
     def load(cls, file_path: str) -> Profile:
@@ -43,6 +44,7 @@ class Profile:
         profile.backdoor_secret = data['backdoor']['secret']
         profile.packet_size = data['backdoor']['packet_size']
         profile.packet_number = data['backdoor']['packet_number']
+        profile.backdoor_timeout = data['backdoor']['timeout']
         profile.backdoor_custom = data['backdoor'].get('custom', {})
         return profile
 
@@ -53,7 +55,7 @@ class Profile:
             "secret": self.backdoor_secret,
             "packet_size": self.packet_size,
             "packet_number": self.packet_number,
-            "timeout": self.http_timeout,
+            "timeout": self.backdoor_timeout,
             "custom": self.backdoor_custom,
         }
         return json.dumps(payload)

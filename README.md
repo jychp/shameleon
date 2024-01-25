@@ -7,6 +7,7 @@ Source code for blog posts on https://jychp.medium.com/
 - 2: Failed to get packets
 - 3: Failed to send packets
 - 4: Unknown tunnel type
+- 5: Failed to encrypt data
 
 ## Testing
 1. Launch Dummy API Server

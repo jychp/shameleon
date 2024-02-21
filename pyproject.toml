@@ -13,7 +13,7 @@ packages = [{include = "shameleon_client"}]
 python = "^3.10"
 requests = "^2.31.0"
 pyyaml = "^6.0.1"
-cryptography = "^42.0.3"
+cryptography = "^42.0.4"
 
 [build-system]
 requires = ["poetry-core"]

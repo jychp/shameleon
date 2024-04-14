@@ -22,10 +22,9 @@ func (t Tunnel) Handle() {
 	case "sx":
 		println("ERROR: Not yet implemented ;)")
 		Fail(9999)
-	case "fd":
-		println("ERROR: Not yet implemented ;)")
-		Fail(9999)
-	case "pf":
+	case "lf":
+		HandleLforward(t)
+	case "rf":
 		println("ERROR: Not yet implemented ;)")
 		Fail(9999)
 	default:

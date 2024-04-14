@@ -51,7 +51,7 @@ class Profile:
     def serialize_for_backdoor(self) -> str:
         """ Serialize profile for backdoor """
         payload = {
-            "delay": 1000,  #  TODO: Implement custom delay
+            "delay": 1000,  # TODO: Implement custom delay
             "secret": self.backdoor_secret,
             "packet_size": self.packet_size,
             "packet_number": self.packet_number,

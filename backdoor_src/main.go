@@ -85,7 +85,6 @@ func main() {
 			}
 		}
 
-
 		// TODO: Increase delay if both inbound and outbound are empty
 		time.Sleep(time.Duration(configData.Delay) * time.Millisecond)
 	}

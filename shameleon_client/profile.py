@@ -22,8 +22,12 @@ class Profile:
         self.name = name
         self.provider_name = provider
         self.description = description
-        # General config
+        # Client config
         self.http_timeout: int = 0
+        self.shell_enabled: bool = False
+        self.shell_port: int = 7777
+        self.lforward_enabled: bool = False
+        self.lforward: dict = {}
         # Backdoor config
         self.backdoor_secret: str = ''
         self.backdoor_custom: dict[str, Any] = {}
@@ -40,7 +44,15 @@ class Profile:
             provider=data['general']['provider'],
             description=data['general']['description'],
         )
-        profile.http_timeout = data['general']['http_timeout']
+        profile.http_timeout = data['client']['http_timeout']
+        profile.shell_enabled = data['client'].get('shell', {}).get('enabled', False)
+        profile.shell_port = data['client'].get('shell', {}).get('port', 7777)
+        profile.lforward_enabled = data['client'].get('lforward', {}).get('enabled', False)
+        for rule in data['client'].get('lforward', {}).get('rules', []):
+            profile.lforward[rule['local_port']] = {
+                'remote_host': rule.get('remote_host', 'localhost'),
+                'remote_port': rule.get('remote_port', 3306),
+            }
         profile.backdoor_secret = data['backdoor']['secret']
         profile.packet_size = data['backdoor']['packet_size']
         profile.packet_number = data['backdoor']['packet_number']

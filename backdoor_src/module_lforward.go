@@ -4,7 +4,6 @@ import (
 	"net"
 	"strings"
 	"time"
-	"fmt"
 	"errors"
 	"io"
 )
@@ -25,15 +24,13 @@ func HandleLforward(tunnel Tunnel) {
 	for {
 		select {
 		case data := <-tunnel.Input:
-			println("Lforward: Sending data")
 			_, err = socket.Write(data)
 			if err != nil {
-				fmt.Println("Lforward: Error sending data")
+				println("Lforward: Error sending data")
 				return
 			}
 		default:
 		}
-		println("Keep going")
 		buf := make([]byte, 1024)
 		socket.SetReadDeadline(time.Now().Add(time.Second))
 		mLen, err := socket.Read(buf)
@@ -43,9 +40,6 @@ func HandleLforward(tunnel Tunnel) {
 			}
 		}
 		if mLen > 0 {
-			println("Lforward: Receiving data")
-			println("Lforward: Received", mLen, "bytes")
-			println(string(buf[:mLen]))
 			tunnel.Output <- buf[:mLen]
 		}
 	}

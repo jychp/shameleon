@@ -26,6 +26,8 @@ class Profile:
         self.http_timeout: int = 0
         self.shell_enabled: bool = False
         self.shell_port: int = 7777
+        self.socks_enabled: bool = False
+        self.socks_port: int = 1080
         self.lforward_enabled: bool = False
         self.lforward: dict = {}
         # Backdoor config
@@ -47,6 +49,8 @@ class Profile:
         profile.http_timeout = data['client']['http_timeout']
         profile.shell_enabled = data['client'].get('shell', {}).get('enabled', False)
         profile.shell_port = data['client'].get('shell', {}).get('port', 7777)
+        profile.socks_enabled = data['client'].get('socks', {}).get('enabled', False)
+        profile.socks_port = data['client'].get('socks', {}).get('port', 8888)
         profile.lforward_enabled = data['client'].get('lforward', {}).get('enabled', False)
         for rule in data['client'].get('lforward', {}).get('rules', []):
             profile.lforward[rule['local_port']] = {

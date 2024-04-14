@@ -2,6 +2,7 @@ import asyncio
 import socket
 
 from shameleon_client.features.lforward import lfoward_connection_hook
+from shameleon_client.features.socks import socks_connection_hook
 from shameleon_client.providers.base import ShameleonProvider
 
 
@@ -25,6 +26,12 @@ class LocalServer:
         while True:  # TODO: Add a way to stop the server
             client, _ = await loop.sock_accept(server)
             tunnel_id = await self._provider.request_tunnel(self._module)
+            # Hook for SOCKS
+            if self._module == 'sx':
+                if not await socks_connection_hook(client, tunnel_id, self._provider):
+                    print('[-] SOCKS connection failed')
+                    client.close()
+                    break
             # Hook for lforward
             if self._module == 'lf':
                 remote_host = self._config.get('remote_host')
@@ -33,6 +40,7 @@ class LocalServer:
                     print(f'[-] Connection to {remote_host}:{remote_port} failed')
                     client.close()
                     break
+            input('SO GOOD SO FAR')
             loop.create_task(self.handle_input(client, tunnel_id))
             loop.create_task(self.handle_output(client, tunnel_id))
 

@@ -20,13 +20,9 @@ func (t Tunnel) Handle() {
 	case "sh":
 		HandleShell(t)
 	case "sx":
-		println("ERROR: Not yet implemented ;)")
-		Fail(9999)
+		HandleForward(t)
 	case "lf":
-		HandleLforward(t)
-	case "rf":
-		println("ERROR: Not yet implemented ;)")
-		Fail(9999)
+		HandleForward(t)
 	default:
 		println("ERROR: Unknown tunnel type", t.Kind)
 		Fail(4)

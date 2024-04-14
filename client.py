@@ -37,7 +37,10 @@ async def main(profile_dir: str, profile_name: str):
         print(f"[*] Starting shell on port {chosen_profile.shell_port}")
         shell = LocalServer(chosen_profile.shell_port, 'sh', provider)
         loop.create_task(shell.run())
-    # TODO: Socks
+    if chosen_profile.socks_enabled:
+        print(f"[*] Starting socks5 on port {chosen_profile.socks_port}")
+        socks = LocalServer(chosen_profile.socks_port, 'sx', provider)
+        loop.create_task(socks.run())
     if chosen_profile.lforward_enabled:
         for local_port, remote in chosen_profile.lforward.items():
             print(f"[*] Starting local forward on port {local_port} -> {remote['remote_host']}:{remote['remote_port']}")

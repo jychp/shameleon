@@ -7,13 +7,16 @@ authors = [
 ]
 readme = "README.md"
 homepage = "https://github.com/jychp/shameleon"
-packages = [{include = "shameleon_client"}]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.31.0"
 pyyaml = "^6.0.1"
 cryptography = "^42.0.5"
+
+[tool.poetry.group.dummyserver.dependencies]
+fastapi = "^0.110.1"
 
 [build-system]
 requires = ["poetry-core"]

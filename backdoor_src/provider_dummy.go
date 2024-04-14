@@ -42,7 +42,7 @@ func CustomGetPackets(p *Provider) ([]Packet, error) {
 		println("ERROR: Failed to parse server response", err.Error())
 		return []Packet{}, err
 	}
-	packets, err := rawData.ExtractPackets(p)
+	packets, err := rawData.ExtractPackets(*p)
 	if err != nil {
 		println("ERROR: Failed to extract packets", err.Error())
 		return []Packet{}, err

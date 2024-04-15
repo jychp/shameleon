@@ -23,5 +23,11 @@ go run .
 
 3. Launch client
 ```bash
-poetry run python3 client.py shell
+poetry run python3 client.py -p ./profiles dummy shell
+```
+## Building
+1. Create profile
+2. Launch builder.py
+```
+python3 builder.py -p ./profiles -o . dummy linux
 ```

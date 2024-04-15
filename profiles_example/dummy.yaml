@@ -2,10 +2,23 @@ general:
   name: dummy
   description: Dummy profile
   provider: dummy
+client:
   http_timeout: 10
+  shell:
+    enabled: true
+    port: 7777
+  socks:
+    enabled: true
+    port: 8888
+  lforward:
+    enabled: true
+    rules:
+      - local_port: 9999
+        remote_host: localhost
+        remote_port: 3306
 backdoor:
   secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
-  packet_size: 1024
+  packet_size: 10240
   packet_number: 0
   timeout: 600
   custom:

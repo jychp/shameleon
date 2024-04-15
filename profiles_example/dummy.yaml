@@ -18,7 +18,7 @@ client:
         remote_port: 3306
 backdoor:
   secret: fhupr5AE9hpCMClK26qaKCvmIGKjU8hMz6RT00YMvj4=
-  packet_size: 1024
+  packet_size: 10240
   packet_number: 0
   timeout: 600
   custom:

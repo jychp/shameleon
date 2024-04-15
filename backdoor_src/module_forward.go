@@ -31,7 +31,7 @@ func HandleForward(tunnel *Tunnel) {
 			}
 		}
 		for {
-			buf := make([]byte, 1024)
+			buf := make([]byte, 10240)
 			socket.SetReadDeadline(time.Now().Add(time.Second))
 			mLen, err := socket.Read(buf)
 			if err != nil {

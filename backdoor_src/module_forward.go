@@ -26,13 +26,16 @@ func HandleForward(tunnel *Tunnel) {
 		if data != nil {
 			_, err = socket.Write(data)
 			if err != nil {
-				println("Error sending data")
+				println("FORWARD: Error sending data")
 				return
 			}
 		}
 		for {
 			buf := make([]byte, 10240)
-			socket.SetReadDeadline(time.Now().Add(time.Second))
+			err := socket.SetReadDeadline(time.Now().Add(time.Second))
+			if err != nil {
+				break
+			}
 			mLen, err := socket.Read(buf)
 			if err != nil {
 				if errors.Is(err, io.EOF) {

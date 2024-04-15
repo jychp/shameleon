@@ -1,12 +1,12 @@
 package main
 
 import (
- 	"time"
 	"strings"
+	"time"
 )
 
 func main() {
-	tunnels := make(map[string]Tunnel)
+	tunnels := make(map[string]*Tunnel)
 	buffers := make(map[string][]byte)
 	buffers["system"] = []byte{}
 
@@ -34,7 +34,7 @@ func main() {
 		for _, packet := range inbound {
 			buffers[packet.TunnelID] = append(buffers[packet.TunnelID], packet.Content...)
 			packetLength := len(packet.Content)
-			if packetLength + len(packet.TunnelID) == configData.PacketSize && packet.Content[packetLength-1] == '!' {
+			if packetLength+len(packet.TunnelID) == configData.PacketSize && packet.Content[packetLength-1] == '!' {
 				continue
 			}
 			if packet.TunnelID == "system" {
@@ -42,7 +42,8 @@ func main() {
 				tunnelType := newTunnelData[0]
 				tunnelID := newTunnelData[1]
 				println("MAIN: Received new tunnel request with ID:", tunnelID)
-				tunnels[tunnelID] = NewTunnel(tunnelType)
+				tunnel := NewTunnel(tunnelType)
+				tunnels[tunnelID] = &tunnel
 				go tunnels[tunnelID].Handle()
 				outbound = append(outbound, BuildPacket("system", []byte("OK"), configData)...)
 			} else {
@@ -50,11 +51,7 @@ func main() {
 				if _, ok := tunnels[packet.TunnelID]; !ok {
 					println("MAIN: Tunnel", packet.TunnelID, "does not exist")
 				} else {
-					if tunnel, ok := tunnels[packet.TunnelID]; ok {
-						tunnel.Lastseen = time.Now().Unix()
-						tunnel.Input <- buffers[packet.TunnelID]
-						tunnels[packet.TunnelID] = tunnel
-					}
+					tunnels[packet.TunnelID].PutIn(buffers[packet.TunnelID])
 				}
 			}
 			buffers[packet.TunnelID] = []byte{}
@@ -63,18 +60,17 @@ func main() {
 		// Oubout
 		for tunnelID, tunnel := range tunnels {
 			// Check activity
-			if time.Now().Unix() - tunnel.Lastseen > configData.Timeout {
+			if time.Now().Unix()-tunnel.Lastseen > configData.Timeout {
 				println("MAIN: Tunnel", tunnelID, "timed out")
 				delete(tunnels, tunnelID)
 				continue
 			}
 			// Check data
-			select {
-			case data := <-tunnel.Output:
-				outbound = append(outbound, BuildPacket(tunnelID, data, configData)...)
-			default:
+			data := tunnel.GetOut(false)
+			if data == nil {
 				continue
 			}
+			outbound = append(outbound, BuildPacket(tunnelID, data, configData)...)
 		}
 		// TODO: Implement packet number limit
 		if len(outbound) > 0 {

@@ -1,6 +1,5 @@
 import asyncio
 import socket
-from struct import pack
 from struct import unpack
 
 from shameleon_client.providers.base import ShameleonProvider
@@ -48,9 +47,6 @@ async def socks_connection_hook(client: socket.socket, tunnel_id: str, provider:
                 await loop.sock_sendall(client, VERSION + b'\x01\x00\x00\x00\x00\x00\x00')
                 return False
             else:
-                addr = b"127.0.0.1"
-                port = pack('>H', 1234)
-                #await loop.sock_sendall(client, VERSION + b'\x00\x00' + ATYP_IPV4 + addr + port)
                 await loop.sock_sendall(client, VERSION + b'\x00\x00' + ATYP_IPV4 + b'\x00\x00\x00\x00' + b'\x00\x00')
                 return True
         await asyncio.sleep(0.1)

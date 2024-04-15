@@ -56,8 +56,6 @@ async def main(profile_dir: str, profile_name: str):
     while len(asyncio.all_tasks()) > 1:
         await asyncio.sleep(1)
 
-    print('SO GOOD SO FAR')
-
 
 if __name__ == '__main__':
     # ARGS PARSING

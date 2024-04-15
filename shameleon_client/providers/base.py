@@ -119,7 +119,6 @@ class ShameleonProvider():
         while not self._tunnels[tunnel_id]['in'].empty():
             encrypted = self._tunnels[tunnel_id]['in'].get(block=False)
             # Partial data
-            print(encrypted)
             if encrypted[-1] == '!' and len(encrypted) == self._profile.packet_size - len(tunnel_id) + 1:
                 self._buffers[tunnel_id] += encrypted[:-1]
                 continue

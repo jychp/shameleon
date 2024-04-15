@@ -57,7 +57,7 @@ def _handle_identification(data: bytes) -> bytes | None:
     nmethods = data[1]
     methods = data[2:]
     if version != VERSION:
-        print(f'[!] Socks version {version} not supported')
+        print('[!] Socks version not supported')
         return None
     if len(methods) != nmethods:
         print('[!] Socks methods mismatch')
@@ -75,13 +75,13 @@ def _handle_request(data: bytes) -> tuple[bytes, int] | None:
     rsv = data[2:3]
     atyp = data[3:4]
     if version != VERSION:
-        print(f'[!] Socks version {version} not supported')
+        print('[!] Socks version not supported')
         return None
     if cmd != CMD_CONNECT:
-        print(f'[!] Socks command {cmd} not supported')
+        print('[!] Socks command not supported')
         return None
     if rsv != b'\x00':
-        print(f'[!] Socks reserved {rsv} not supported')
+        print('[!] Socks reserved not supported')
         return None
     # IPV4
     if atyp == ATYP_IPV4:

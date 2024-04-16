@@ -20,9 +20,10 @@ class LokiShameleonProvider(ShameleonProvider):
         super().__init__(profile)
         self._last_log_ts: float = time.time()
 
-    async def _send_payload(self, payload: list[str]):
-        for i in range(0, len(payload), self._profile.packet_number):
-            chunks = payload[i:i + self._profile.packet_number]
+    async def _send_payload(self, data: list[str]):
+        # TODO: Handle HTTP errors
+        for i in range(0, len(data), self._profile.packet_number):
+            chunks = data[i:i + self._profile.packet_number]
             start_ts = time.time_ns() - len(chunks)
             values: list[list[str]] = []
             for i, value in enumerate(chunks):
@@ -47,6 +48,7 @@ class LokiShameleonProvider(ShameleonProvider):
                 )
 
     async def _get_payload(self) -> list[tuple[str, str]]:
+        # TODO: Handle HTTP errors
         output: list[tuple[str, str]] = []
         if self._last_log_ts == 0:
             start_time = time.time() - 20

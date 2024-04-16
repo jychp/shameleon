@@ -13,15 +13,17 @@ class DummyShameleonProvider(ShameleonProvider):
     This provider is not intended to be used in production.
     """
 
-    async def _send_payload(self, payload: list[str]):
+    async def _send_payload(self, data: list[str]):
+        # TODO: Handle HTTP errors
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             await session.post(
                 f"{self._profile.backdoor_custom['url']}/in",
-                json={'elements': payload},
+                json={'elements': data},
                 timeout=self._profile.http_timeout,
             )
 
     async def _get_payload(self) -> list[tuple[str, str]]:
+        # TODO: Handle HTTP errors
         output: list[tuple[str, str]] = []
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             async with session.get(

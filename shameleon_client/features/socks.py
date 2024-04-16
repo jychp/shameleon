@@ -13,8 +13,20 @@ ATYP_IPV4 = b'\x01'
 ATYP_DOMAINNAME = b'\x03'
 
 
-async def socks_connection_hook(client: socket.socket, tunnel_id: str, provider: ShameleonProvider):
-    # DOC
+async def socks_connection_hook(client: socket.socket, tunnel_id: str, provider: ShameleonProvider) -> bool:
+    """ Handle a SOCKS connection
+
+    This function is used to handle a SOCKS connection. It will receive the identification packet, the connection
+    request and send the response to the backdoor.
+
+    Args:
+        client (socket.socket): client socket
+        tunnel_id (str): backdoor tunnel id
+        provider (ShameleonProvider): backdoor provider
+
+    Returns:
+        bool: True if the connection is successful, False otherwise
+    """
     loop = asyncio.get_event_loop()
     # Identification
     while True:  # TODO: Add timeout

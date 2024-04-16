@@ -8,8 +8,17 @@ from shameleon_client.providers.base import ShameleonProvider
 from shameleon_client.server import LocalServer
 
 
-async def main(profile_dir: str, profile_name: str):
+async def main(profile_dir: str, profile_name: str) -> None:
+    """ Shameleon client
+
+    This is the main function of the client. It loads the profiles, starts the provider and the servers.
+
+    Args:
+        profile_dir (str): path to the directory containing the profiles
+        profile_name (str): name of the profile to use
+    """
     loop = asyncio.get_event_loop()
+    tasks: list[asyncio.Task] = []
 
     # Load profiles
     profiles: dict[str, Profile] = {}
@@ -29,18 +38,17 @@ async def main(profile_dir: str, profile_name: str):
 
     # Start provider
     provider = ShameleonProvider.get_module_from_name(chosen_profile.provider_name)(chosen_profile)
-    loop.create_task(provider.run())
+    tasks.append(loop.create_task(provider.run()))
 
     # Shell
-    # TODO: Config flag to activatiog
     if chosen_profile.shell_enabled:
         print(f"[*] Starting shell on port {chosen_profile.shell_port}")
         shell = LocalServer(chosen_profile.shell_port, 'sh', provider)
-        loop.create_task(shell.run())
+        tasks.append(loop.create_task(shell.run()))
     if chosen_profile.socks_enabled:
         print(f"[*] Starting socks5 on port {chosen_profile.socks_port}")
         socks = LocalServer(chosen_profile.socks_port, 'sx', provider)
-        loop.create_task(socks.run())
+        tasks.append(loop.create_task(socks.run()))
     if chosen_profile.lforward_enabled:
         for local_port, remote in chosen_profile.lforward.items():
             print(f"[*] Starting local forward on port {local_port} -> {remote['remote_host']}:{remote['remote_port']}")
@@ -51,10 +59,20 @@ async def main(profile_dir: str, profile_name: str):
                 remote_host=remote['remote_host'],
                 remote_port=remote['remote_port'],
             )
-            loop.create_task(lforward.run())
+            tasks.append(loop.create_task(lforward.run()))
 
-    while len(asyncio.all_tasks()) > 1:
-        await asyncio.sleep(1)
+    try:
+        while len(asyncio.all_tasks()) > 1:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        print('[i] Exiting...')
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 
 if __name__ == '__main__':
@@ -72,4 +90,8 @@ if __name__ == '__main__':
         help='Names of backdoor to use',
     )
     args = parser.parse_args()
-    asyncio.run(main(args.profile_dir, args.profile))
+    try:
+        asyncio.run(main(args.profile_dir, args.profile))
+    except KeyboardInterrupt:
+        print('[i] Waiting for all tasks to finish...')
+        exit(0)

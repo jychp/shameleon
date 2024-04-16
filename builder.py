@@ -22,7 +22,7 @@ def copy_file(src, dst, debug=False):
                     out_f.write(line + '\n')
 
 
-def main():
+def main() -> None:
     # ARGS PARSING
     parser = argparse.ArgumentParser("Shameleon builder - v0.2")
     parser.add_argument(

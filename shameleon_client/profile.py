@@ -36,9 +36,22 @@ class Profile:
         self.packet_size: int = 0
         self.packet_number: int = 0
         self.backdoor_timeout: int = 0
+        self.backdoor_min_delay: int = 0
+        self.backdoor_factor_delay: float = 0.0
+        self.backdoor_max_delay: int = 0
 
     @classmethod
     def load(cls, file_path: str) -> Profile:
+        """ Load profile from file
+
+        This method is used to load a profile from a YAML file.
+
+        Args:
+            file_path (str): path to the profile file
+
+        Returns:
+            Profile: profile loaded from the file
+        """
         with open(file_path, encoding='utf-8') as f:
             data = yaml.safe_load(f)
         profile = cls(
@@ -62,16 +75,21 @@ class Profile:
         profile.packet_number = data['backdoor']['packet_number']
         profile.backdoor_timeout = data['backdoor']['timeout']
         profile.backdoor_custom = data['backdoor'].get('custom', {})
+        profile.backdoor_min_delay = data['backdoor'].get('min_delay', 1000)
+        profile.backdoor_factor_delay = data['backdoor'].get('factor_delay', 0.5)
+        profile.backdoor_max_delay = data['backdoor'].get('max_delay', 10000)
         return profile
 
     def serialize_for_backdoor(self) -> str:
         """ Serialize profile for backdoor """
         payload = {
-            "delay": 1000,  # TODO: Implement custom delay
             "secret": self.backdoor_secret,
             "packet_size": self.packet_size,
             "packet_number": self.packet_number,
             "timeout": self.backdoor_timeout,
             "custom": self.backdoor_custom,
+            "min_delay": self.backdoor_min_delay,
+            "factor_delay": self.backdoor_factor_delay,
+            "max_delay": self.backdoor_max_delay,
         }
         return json.dumps(payload)

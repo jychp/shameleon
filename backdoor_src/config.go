@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
 )
 
 var (
@@ -10,12 +10,15 @@ var (
 )
 
 type Config struct {
-	Delay 			int 				`json:"delay"`
-	Secret 			string 				`json:"secret"`
-	PacketSize 		int 				`json:"packet_size"`
-	PacketNumber 	int 				`json:"packet_number"`
-	Timeout     	int64   			`json:"timeout"`
-	Custom          map[string]string	`json:"custom"`
+	Secret       string            `json:"secret"`
+	PacketSize   int               `json:"packet_size"`
+	PacketNumber int               `json:"packet_number"`
+	Timeout      int64             `json:"timeout"`
+	Custom       map[string]string `json:"custom"`
+	MinDelay     int               `json:"min_delay"`
+	FactorDelay  float64           `json:"factor_delay"`
+	MaxDelay     int               `json:"max_delay"`
+	CurrentDelay int               `json:"current_delay"`
 }
 
 func loadConfig() (Config, error) {
@@ -25,5 +28,6 @@ func loadConfig() (Config, error) {
 		return config, err
 	}
 	err = json.Unmarshal([]byte(decoded), &config)
+	config.CurrentDelay = config.MinDelay
 	return config, err
 }

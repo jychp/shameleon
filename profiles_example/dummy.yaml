@@ -21,5 +21,8 @@ backdoor:
   packet_size: 10240
   packet_number: 0
   timeout: 600
+  min_delay: 1000
+  factor_delay: 0.1
+  max_delay: 10000
   custom:
     url: 'http://127.0.0.1:8000'

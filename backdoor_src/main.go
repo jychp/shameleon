@@ -81,7 +81,15 @@ func main() {
 			}
 		}
 
-		// TODO: Increase delay if both inbound and outbound are empty
-		time.Sleep(time.Duration(configData.Delay) * time.Millisecond)
+		println("MAIN: Delay set to", configData.CurrentDelay, "ms")
+		time.Sleep(time.Duration(configData.CurrentDelay) * time.Millisecond)
+		if len(inbound) == 0 && len(outbound) == 0 {
+			configData.CurrentDelay = int(float64(configData.CurrentDelay) * (1 + configData.FactorDelay))
+			if configData.CurrentDelay > configData.MaxDelay {
+				configData.CurrentDelay = configData.MaxDelay
+			}
+		} else {
+			configData.CurrentDelay = configData.MinDelay
+		}
 	}
 }

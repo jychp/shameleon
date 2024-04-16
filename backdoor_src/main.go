@@ -81,7 +81,6 @@ func main() {
 			}
 		}
 
-		println("MAIN: Delay set to", configData.CurrentDelay, "ms")
 		time.Sleep(time.Duration(configData.CurrentDelay) * time.Millisecond)
 		if len(inbound) == 0 && len(outbound) == 0 {
 			configData.CurrentDelay = int(float64(configData.CurrentDelay) * (1 + configData.FactorDelay))

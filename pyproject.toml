@@ -16,7 +16,7 @@ cryptography = "^43.0.3"
 aiohttp = "^3.10.10"
 
 [tool.poetry.group.dummyserver.dependencies]
-fastapi = "^0.115.2"
+fastapi = "^0.115.4"
 
 [build-system]
 requires = ["poetry-core"]

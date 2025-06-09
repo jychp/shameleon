@@ -13,7 +13,7 @@ package-mode = false
 python = "^3.10"
 pyyaml = "^6.0.2"
 cryptography = "^45.0.3"
-aiohttp = "^3.12.6"
+aiohttp = "^3.12.11"
 
 [tool.poetry.group.dummyserver.dependencies]
 fastapi = "^0.115.12"
